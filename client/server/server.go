@@ -176,6 +176,7 @@ func (s *Server) Start() error {
 	if s.sessionWatcher == nil {
 		s.sessionWatcher = internal.NewSessionWatcher(s.rootCtx, s.statusRecorder)
 		s.sessionWatcher.SetOnExpireListener(s.onSessionExpire)
+		s.sessionWatcher.SetOnExpiresSoonListener(s.onSessionExpiresSoon)
 	}
 
 	if config.DisableAutoConnect {
@@ -1648,6 +1649,18 @@ func (s *Server) onSessionExpire() {
 			}
 		}
 	}
+}
+
+// onSessionExpiresSoon is called when the session is about to expire within the warning threshold.
+func (s *Server) onSessionExpiresSoon(remaining time.Duration) {
+	minutes := int(remaining.Minutes()) + 1
+	s.statusRecorder.PublishEvent(
+		proto.SystemEvent_WARNING,
+		proto.SystemEvent_AUTHENTICATION,
+		"session expiration approaching",
+		fmt.Sprintf("Your NetBird session will expire in about %d minute(s). Please re-authenticate soon to avoid losing connectivity.", minutes),
+		nil,
+	)
 }
 
 // getConnectWithBackoff returns a backoff with exponential backoff strategy for connection retries

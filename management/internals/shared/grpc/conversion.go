@@ -100,6 +100,11 @@ func toPeerConfig(peer *nbpeer.Peer, network *types.Network, dnsName string, set
 		sshConfig.JwtConfig = buildJWTConfig(httpConfig, deviceFlowConfig)
 	}
 
+	var loginExpiresAt int64
+	if settings.PeerLoginExpirationEnabled && peer.LoginExpirationEnabled && peer.AddedWithSSOLogin() {
+		loginExpiresAt = peer.GetLastLogin().Add(settings.PeerLoginExpiration).Unix()
+	}
+
 	return &proto.PeerConfig{
 		Address:                         fmt.Sprintf("%s/%d", peer.IP.String(), netmask),
 		SshConfig:                       sshConfig,
@@ -109,6 +114,7 @@ func toPeerConfig(peer *nbpeer.Peer, network *types.Network, dnsName string, set
 		AutoUpdate: &proto.AutoUpdateSettings{
 			Version: settings.AutoUpdateVersion,
 		},
+		LoginExpiresAt: loginExpiresAt,
 	}
 }
 

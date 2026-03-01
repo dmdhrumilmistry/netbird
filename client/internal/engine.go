@@ -1027,6 +1027,12 @@ func (e *Engine) updateConfig(conf *mgmProto.PeerConfig) error {
 
 	e.statusRecorder.UpdateLocalPeerState(state)
 
+	if conf.GetLoginExpiresAt() != 0 {
+		e.statusRecorder.SetLoginExpiresAt(time.Unix(conf.GetLoginExpiresAt(), 0))
+	} else {
+		e.statusRecorder.SetLoginExpiresAt(time.Time{})
+	}
+
 	return nil
 }
 func (e *Engine) receiveJobEvents() {

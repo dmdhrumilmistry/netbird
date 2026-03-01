@@ -10,6 +10,8 @@ import (
 	"github.com/netbirdio/netbird/client/internal/peer"
 )
 
+const sessionExpirationWarningThreshold = 10 * time.Minute
+
 type SessionWatcher struct {
 	ctx   context.Context
 	mutex sync.Mutex
@@ -17,8 +19,10 @@ type SessionWatcher struct {
 	peerStatusRecorder *peer.Status
 	watchTicker        *time.Ticker
 
-	sendNotification bool
-	onExpireListener func()
+	sendNotification      bool
+	onExpireListener      func()
+	onExpiresSoonListener func(remainingTime time.Duration)
+	expiresSoonNotified   bool
 }
 
 // NewSessionWatcher creates a new instance of SessionWatcher.
@@ -39,6 +43,14 @@ func (s *SessionWatcher) SetOnExpireListener(onExpire func()) {
 	s.onExpireListener = onExpire
 }
 
+// SetOnExpiresSoonListener sets the callback func to be called when the session is about to expire.
+// The callback receives the remaining time until expiration.
+func (s *SessionWatcher) SetOnExpiresSoonListener(onExpiresSoon func(remainingTime time.Duration)) {
+	s.mutex.Lock()
+	defer s.mutex.Unlock()
+	s.onExpiresSoonListener = onExpiresSoon
+}
+
 // startWatcher continuously checks if the session requires login and
 // calls the onExpireListener if login is required.
 func (s *SessionWatcher) startWatcher() {
@@ -51,6 +63,7 @@ func (s *SessionWatcher) startWatcher() {
 			managementState := s.peerStatusRecorder.GetManagementState()
 			if managementState.Connected {
 				s.sendNotification = true
+				s.checkLoginExpiresSoon()
 			}
 
 			isLoginRequired := s.peerStatusRecorder.IsLoginRequired()
@@ -58,9 +71,33 @@ func (s *SessionWatcher) startWatcher() {
 				s.mutex.Lock()
 				s.onExpireListener()
 				s.sendNotification = false
+				s.expiresSoonNotified = false
 				s.mutex.Unlock()
 			}
 		}
+	}
+}
+
+// checkLoginExpiresSoon checks if the login is about to expire and fires the onExpiresSoonListener
+// when the remaining time falls below the warning threshold.
+func (s *SessionWatcher) checkLoginExpiresSoon() {
+	loginExpiresAt := s.peerStatusRecorder.GetLoginExpiresAt()
+	if loginExpiresAt.IsZero() {
+		return
+	}
+
+	remaining := time.Until(loginExpiresAt)
+	if remaining <= 0 {
+		// Already expired; the expiry listener will handle this
+		return
+	}
+
+	s.mutex.Lock()
+	defer s.mutex.Unlock()
+
+	if remaining <= sessionExpirationWarningThreshold && !s.expiresSoonNotified && s.onExpiresSoonListener != nil {
+		s.onExpiresSoonListener(remaining)
+		s.expiresSoonNotified = true
 	}
 }
 
