@@ -18,6 +18,7 @@ func TestSessionWatcher_ExpiresSoonListenerCalled(t *testing.T) {
 		ctx:                ctx,
 		peerStatusRecorder: statusRecorder,
 		watchTicker:        time.NewTicker(10 * time.Millisecond),
+		warningThreshold:   sessionExpirationWarningThreshold,
 	}
 
 	// Simulate management connected so sendNotification is set
@@ -63,6 +64,7 @@ func TestSessionWatcher_ExpiresSoonListenerNotCalledWhenFarFromExpiry(t *testing
 		ctx:                ctx,
 		peerStatusRecorder: statusRecorder,
 		watchTicker:        time.NewTicker(10 * time.Millisecond),
+		warningThreshold:   sessionExpirationWarningThreshold,
 	}
 
 	// Simulate management connected
@@ -94,6 +96,7 @@ func TestSessionWatcher_ExpiresSoonListenerNotCalledWhenNoExpiry(t *testing.T) {
 		ctx:                ctx,
 		peerStatusRecorder: statusRecorder,
 		watchTicker:        time.NewTicker(10 * time.Millisecond),
+		warningThreshold:   sessionExpirationWarningThreshold,
 	}
 
 	// Simulate management connected
@@ -125,6 +128,7 @@ func TestSessionWatcher_ExpiresSoonListenerOnlyCalledOnce(t *testing.T) {
 		ctx:                ctx,
 		peerStatusRecorder: statusRecorder,
 		watchTicker:        time.NewTicker(10 * time.Millisecond),
+		warningThreshold:   sessionExpirationWarningThreshold,
 	}
 
 	// Simulate management connected

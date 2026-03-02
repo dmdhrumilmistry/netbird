@@ -23,6 +23,7 @@ type SessionWatcher struct {
 	onExpireListener      func()
 	onExpiresSoonListener func(remainingTime time.Duration)
 	expiresSoonNotified   bool
+	warningThreshold      time.Duration
 }
 
 // NewSessionWatcher creates a new instance of SessionWatcher.
@@ -31,9 +32,17 @@ func NewSessionWatcher(ctx context.Context, peerStatusRecorder *peer.Status) *Se
 		ctx:                ctx,
 		peerStatusRecorder: peerStatusRecorder,
 		watchTicker:        time.NewTicker(2 * time.Second),
+		warningThreshold:   sessionExpirationWarningThreshold,
 	}
 	go s.startWatcher()
 	return s
+}
+
+// SetWarningThreshold sets how far in advance of session expiry the warning notification fires.
+func (s *SessionWatcher) SetWarningThreshold(d time.Duration) {
+	s.mutex.Lock()
+	defer s.mutex.Unlock()
+	s.warningThreshold = d
 }
 
 // SetOnExpireListener sets the callback func to be called when the session expires.
@@ -95,7 +104,7 @@ func (s *SessionWatcher) checkLoginExpiresSoon() {
 	s.mutex.Lock()
 	defer s.mutex.Unlock()
 
-	if remaining <= sessionExpirationWarningThreshold && !s.expiresSoonNotified && s.onExpiresSoonListener != nil {
+	if remaining <= s.warningThreshold && !s.expiresSoonNotified && s.onExpiresSoonListener != nil {
 		s.onExpiresSoonListener(remaining)
 		s.expiresSoonNotified = true
 	}
