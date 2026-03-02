@@ -2,15 +2,21 @@ package internal
 
 import (
 	"context"
+	"os"
 	"os/exec"
 	"strings"
 	"sync"
 	"time"
 
+	log "github.com/sirupsen/logrus"
+
 	"github.com/netbirdio/netbird/client/internal/peer"
 )
 
-const sessionExpirationWarningThreshold = 10 * time.Minute
+const (
+	sessionExpirationWarningThreshold    = 10 * time.Minute
+	sessionExpirationWarningThresholdVar = "NB_SESSION_EXPIRY_WARNING_THRESHOLD"
+)
 
 type SessionWatcher struct {
 	ctx   context.Context
@@ -27,12 +33,24 @@ type SessionWatcher struct {
 }
 
 // NewSessionWatcher creates a new instance of SessionWatcher.
+// The warning threshold defaults to sessionExpirationWarningThreshold but can be
+// overridden at startup via the NB_SESSION_EXPIRY_WARNING_THRESHOLD environment variable
+// (e.g. "5m", "15m30s").
 func NewSessionWatcher(ctx context.Context, peerStatusRecorder *peer.Status) *SessionWatcher {
+	threshold := sessionExpirationWarningThreshold
+	if v := os.Getenv(sessionExpirationWarningThresholdVar); v != "" {
+		if d, err := time.ParseDuration(v); err == nil {
+			threshold = d
+		} else {
+			log.Warnf("unable to parse %s: %s, using default: %s", sessionExpirationWarningThresholdVar, v, threshold)
+		}
+	}
+
 	s := &SessionWatcher{
 		ctx:                ctx,
 		peerStatusRecorder: peerStatusRecorder,
 		watchTicker:        time.NewTicker(2 * time.Second),
-		warningThreshold:   sessionExpirationWarningThreshold,
+		warningThreshold:   threshold,
 	}
 	go s.startWatcher()
 	return s
