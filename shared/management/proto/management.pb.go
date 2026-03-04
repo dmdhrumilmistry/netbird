@@ -2160,6 +2160,8 @@ type PeerConfig struct {
 	Mtu                             int32  `protobuf:"varint,7,opt,name=mtu,proto3" json:"mtu,omitempty"`
 	// Auto-update config
 	AutoUpdate *AutoUpdateSettings `protobuf:"bytes,8,opt,name=autoUpdate,proto3" json:"autoUpdate,omitempty"`
+	// Unix timestamp (seconds) when the peer login expires. Zero means no expiration.
+	LoginExpiresAt int64 `protobuf:"varint,9,opt,name=login_expires_at,json=loginExpiresAt,proto3" json:"login_expires_at,omitempty"`
 }
 
 func (x *PeerConfig) Reset() {
@@ -2248,6 +2250,13 @@ func (x *PeerConfig) GetAutoUpdate() *AutoUpdateSettings {
 		return x.AutoUpdate
 	}
 	return nil
+}
+
+func (x *PeerConfig) GetLoginExpiresAt() int64 {
+	if x != nil {
+		return x.LoginExpiresAt
+	}
+	return 0
 }
 
 type AutoUpdateSettings struct {

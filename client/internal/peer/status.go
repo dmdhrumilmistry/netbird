@@ -219,6 +219,8 @@ type Status struct {
 
 	routeIDLookup routeIDLookup
 	wgIface       WGIfaceStatus
+
+	loginExpiresAt time.Time
 }
 
 // NewRecorder returns a new Status instance
@@ -894,6 +896,22 @@ func (d *Status) IsLoginRequired() bool {
 		return true
 	}
 	return false
+}
+
+// SetLoginExpiresAt stores the time at which the peer login will expire.
+// A zero value means no expiration is configured.
+func (d *Status) SetLoginExpiresAt(t time.Time) {
+	d.mux.Lock()
+	defer d.mux.Unlock()
+	d.loginExpiresAt = t
+}
+
+// GetLoginExpiresAt returns the time at which the peer login will expire.
+// A zero value means no expiration is configured.
+func (d *Status) GetLoginExpiresAt() time.Time {
+	d.mux.Lock()
+	defer d.mux.Unlock()
+	return d.loginExpiresAt
 }
 
 func (d *Status) GetSignalState() SignalState {

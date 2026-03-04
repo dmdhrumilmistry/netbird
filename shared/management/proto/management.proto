@@ -335,6 +335,9 @@ message PeerConfig {
 
   // Auto-update config
   AutoUpdateSettings autoUpdate = 8;
+
+  // Unix timestamp (seconds) when the peer login expires. Zero means no expiration.
+  int64 login_expires_at = 9;
 }
 
 message AutoUpdateSettings {
